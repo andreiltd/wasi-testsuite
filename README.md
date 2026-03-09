@@ -71,6 +71,23 @@ Optionally you can specify test cases to skip with the `--exclude-filter` option
 ./run-tests --exclude-filter examples/skip.json
 ```
 
+## Using buck2
+
+The test suite can be built and run hermetically with [Buck2](https://buck2.build)
+using [wasmono](https://github.com/andreiltd/wasmono) toolchain rules.
+
+The tests use the dev version of Wasmtime, which is a rolling release without a
+stable hash. Before running tests, update the SHA256 hashes in `toolchains/releases.bzl`:
+
+```
+cargo binstall dotslash
+./buck2 run //scripts:wasmtime-nightly
+./buck2 test //tests/...
+```
+
+Note: make sure to use `./buck2` and not `buck2` from your system. It may still work but
+`buck2` version has to be pretty recent.
+
 ## Contributing
 
 Want to add a new test?  [There's a doc for that!](doc/writing-tests.md)

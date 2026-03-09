@@ -1,0 +1,10 @@
+python_library(
+    name = "run_wasi_test",
+    srcs = ["run_wasi_test.py"],
+    base_module = "",
+    deps = [
+        "//test-runner:wasi_test_runner",
+        "//adapters:adapters",
+    ],
+    visibility = ["PUBLIC"],
+)

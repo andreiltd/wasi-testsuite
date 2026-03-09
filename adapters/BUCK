@@ -1,0 +1,6 @@
+python_library(
+    name = "adapters",
+    srcs = glob(["*.py"]),
+    base_module = "adapters",
+    visibility = ["PUBLIC"],
+)

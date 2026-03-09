@@ -1,0 +1,72 @@
+load("@prelude//toolchains:cxx.bzl", "system_cxx_toolchain")
+load("@prelude//toolchains:genrule.bzl", "system_genrule_toolchain")
+load("@prelude//toolchains:python.bzl", "remote_python_toolchain", "system_python_bootstrap_toolchain")
+load("@prelude//toolchains:rust.bzl", "system_rust_toolchain")
+load("@prelude//tests:test_toolchain.bzl", "noop_test_toolchain")
+load("@prelude//toolchains:remote_test_execution.bzl", "remote_test_execution_toolchain")
+
+load("@wasmono//toolchains/wasm:demo.bzl", "wasm_demo_toolchains")
+load("@wasmono//toolchains/cxx/wasi:defs.bzl", "download_wasi_sdk", "cxx_wasi_toolchain")
+load(":releases.bzl", "RELEASES")
+
+_DEFAULT_TRIPLE = select({
+    "config//os:wasi": select({
+        "config//cpu:wasm32": "wasm32-wasip2",
+    }),
+    "config//os:linux": select({
+        "config//cpu:arm64": "aarch64-unknown-linux-gnu",
+        "config//cpu:x86_64": "x86_64-unknown-linux-gnu",
+    }),
+    "config//os:macos": select({
+        "config//cpu:arm64": "aarch64-apple-darwin",
+        "config//cpu:x86_64": "x86_64-apple-darwin",
+    }),
+})
+
+system_genrule_toolchain(name = "genrule", visibility = ["PUBLIC"])
+system_cxx_toolchain(name = "cxx", visibility = ["PUBLIC"])
+system_python_bootstrap_toolchain(name = "python_bootstrap", visibility = ["PUBLIC"])
+remote_python_toolchain(name = "python", visibility = ["PUBLIC"], bootstrap = False)
+
+system_rust_toolchain(
+    name = "rust",
+    default_edition = "2024",
+    rustc_target_triple = _DEFAULT_TRIPLE,
+    visibility = ["PUBLIC"],
+)
+
+# WASM toolchains
+wasm_demo_toolchains(
+    wasmtime_version = "dev",
+    releases = RELEASES,
+    asc_version = "0.27.31",
+)
+
+download_wasi_sdk(name = "wasi_sdk", version = "27.0")
+
+cxx_wasi_toolchain(
+    name = "cxx_wasi",
+    distribution = ":wasi_sdk",
+    visibility = ["PUBLIC"],
+)
+
+cxx_wasi_toolchain(
+    name = "cxx_wasi_p1",
+    distribution = ":wasi_sdk",
+    target = "wasm32-wasip1",
+    visibility = ["PUBLIC"],
+)
+
+cxx_wasi_toolchain(
+    name = "rust_linker",
+    distribution = ":wasi_sdk",
+    linker_tool = "wasm-ld",
+    visibility = ["PUBLIC"],
+)
+
+noop_test_toolchain(name = "test", visibility = ["PUBLIC"])
+
+remote_test_execution_toolchain(
+    name = "remote_test_execution",
+    visibility = ["PUBLIC"],
+)

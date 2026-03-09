@@ -1,0 +1,109 @@
+load("@wasmono//toolchains/wasm:component.bzl", "wasm_component", "wasm_test")
+
+# Rust wasip1 tests using native rust_binary + wasm_component + wasm_test.
+#
+# Shared test library + individual binaries per test, compiled to
+# wasm32-wasip1 via the wasm_transition in wasm_component.
+
+_FS_DIRS = ["tests/rust/wasm32-wasip1/src/bin/fs-tests.dir::fs-tests.dir"]
+
+_TESTS = [
+    {"name": "big_random_buf"},
+    {"name": "clock_time_get"},
+    {"name": "poll_oneoff_stdio"},
+    {"name": "sched_yield"},
+    {"name": "close_preopen", "dirs": _FS_DIRS},
+    {"name": "dangling_fd", "dirs": _FS_DIRS},
+    {"name": "dangling_symlink", "dirs": _FS_DIRS},
+    {"name": "dir_fd_op_failures", "dirs": _FS_DIRS},
+    {"name": "directory_seek", "dirs": _FS_DIRS},
+    {"name": "fd_advise", "dirs": _FS_DIRS},
+    {"name": "fd_fdstat_set_rights", "dirs": _FS_DIRS},
+    {"name": "fd_filestat_set", "dirs": _FS_DIRS},
+    {"name": "fd_flags_set", "dirs": _FS_DIRS},
+    {"name": "fd_readdir", "dirs": _FS_DIRS},
+    {"name": "file_allocate", "dirs": _FS_DIRS},
+    {"name": "file_pread_pwrite", "dirs": _FS_DIRS},
+    {"name": "file_seek_tell", "dirs": _FS_DIRS},
+    {"name": "file_truncation", "dirs": _FS_DIRS},
+    {"name": "file_unbuffered_write", "dirs": _FS_DIRS},
+    {"name": "fstflags_validate", "dirs": _FS_DIRS},
+    {"name": "interesting_paths", "dirs": _FS_DIRS},
+    {"name": "isatty", "dirs": _FS_DIRS},
+    {"name": "nofollow_errors", "dirs": _FS_DIRS},
+    {"name": "overwrite_preopen", "dirs": _FS_DIRS},
+    {"name": "path_exists", "dirs": _FS_DIRS},
+    {"name": "path_filestat", "dirs": _FS_DIRS},
+    {"name": "path_link", "dirs": _FS_DIRS},
+    {"name": "path_open_create_existing", "dirs": _FS_DIRS},
+    {"name": "path_open_dirfd_not_dir", "dirs": _FS_DIRS},
+    {"name": "path_open_missing", "dirs": _FS_DIRS},
+    {"name": "path_open_nonblock", "dirs": _FS_DIRS},
+    {"name": "path_open_preopen", "dirs": _FS_DIRS},
+    {"name": "path_open_read_write", "dirs": _FS_DIRS},
+    {"name": "path_rename", "dirs": _FS_DIRS},
+    {"name": "path_rename_dir_trailing_slashes", "dirs": _FS_DIRS},
+    {"name": "path_symlink_trailing_slashes", "dirs": _FS_DIRS},
+    {"name": "readlink", "dirs": _FS_DIRS},
+    {"name": "remove_directory_trailing_slashes", "dirs": _FS_DIRS, "skip": "TODO"},
+    {"name": "remove_nonempty_directory", "dirs": _FS_DIRS},
+    {"name": "renumber", "dirs": _FS_DIRS},
+    {"name": "stdio", "dirs": _FS_DIRS},
+    {"name": "symlink_create", "dirs": _FS_DIRS},
+    {"name": "symlink_filestat", "dirs": _FS_DIRS},
+    {"name": "symlink_loop", "dirs": _FS_DIRS},
+    {"name": "truncation_rights", "dirs": _FS_DIRS},
+    {"name": "unlink_file_trailing_slashes", "dirs": _FS_DIRS},
+]
+
+# Shared test helper library
+rust_library(
+    name = "wasi_tests",
+    crate = "wasi_tests",
+    srcs = ["src/lib.rs", "src/config.rs"],
+    edition = "2021",
+    deps = [
+        "//third-party:libc",
+        "//third-party:once_cell",
+        "//third-party:wasi",
+    ],
+    _cxx_toolchain = "toolchains//:rust_linker",
+)
+
+# Individual test binaries + components
+[
+    (
+        rust_binary(
+            name = t["name"],
+            crate = t["name"],
+            crate_root = "src/bin/{}.rs".format(t["name"]),
+            srcs = ["src/bin/{}.rs".format(t["name"])],
+            edition = "2021",
+            deps = [
+                ":wasi_tests",
+                "//third-party:libc",
+                "//third-party:wasi",
+            ],
+            _cxx_toolchain = "toolchains//:rust_linker",
+        ),
+        wasm_component(
+            name = t["name"] + "_component",
+            module = ":{}".format(t["name"]),
+            adapter = "command",
+        ),
+    )
+    for t in _TESTS
+]
+
+# wasm_test for each test
+[
+    wasm_test(
+        name = t["name"] + "_test",
+        component = ":{}_component".format(t["name"]),
+        wasi_dirs = t.get("dirs", []),
+        isolate_dirs = True,
+        args = ["fs-tests.dir"] if t.get("dirs") else [],
+    )
+    for t in _TESTS
+    if not t.get("skip")
+]

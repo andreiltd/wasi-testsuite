@@ -1,0 +1,171 @@
+# Aggregation targets for running groups of tests.
+# Usage:
+#   buck2 test //tests/...            - all tests
+#   buck2 test //tests:wasip1         - all wasip1 tests (C + Rust + AS)
+#   buck2 test //tests:c              - C tests only
+#   buck2 test //tests:rust_wasip1    - Rust wasip1 tests only
+#   buck2 test //tests:assemblyscript - AssemblyScript tests only
+#   buck2 test //tests:rust_wasip3    - Rust wasip3 tests (needs newer wasmtime)
+
+_C_TESTS = [
+    "//tests/c:clock_getres-monotonic_test",
+    "//tests/c:clock_getres-realtime_test",
+    "//tests/c:clock_gettime-monotonic_test",
+    "//tests/c:clock_gettime-realtime_test",
+    "//tests/c:fdopendir-with-access_test",
+    "//tests/c:fopen-with-access_test",
+    "//tests/c:fopen-with-no-access_test",
+    "//tests/c:lseek_test",
+    "//tests/c:pread-with-access_test",
+    "//tests/c:pwrite-with-access_test",
+    "//tests/c:pwrite-with-append_test",
+    "//tests/c:sock_shutdown-invalid_fd_test",
+    "//tests/c:sock_shutdown-not_sock_test",
+    "//tests/c:stat-dev-ino_test",
+]
+
+_RUST_WASIP1_TESTS = [
+    "//tests/rust/wasm32-wasip1:" + t + "_test"
+    for t in [
+        "big_random_buf",
+        "clock_time_get",
+        "close_preopen",
+        "dangling_fd",
+        "dangling_symlink",
+        "dir_fd_op_failures",
+        "directory_seek",
+        "fd_advise",
+        "fd_fdstat_set_rights",
+        "fd_filestat_set",
+        "fd_flags_set",
+        "fd_readdir",
+        "file_allocate",
+        "file_pread_pwrite",
+        "file_seek_tell",
+        "file_truncation",
+        "file_unbuffered_write",
+        "fstflags_validate",
+        "interesting_paths",
+        "isatty",
+        "nofollow_errors",
+        "overwrite_preopen",
+        "path_exists",
+        "path_filestat",
+        "path_link",
+        "path_open_create_existing",
+        "path_open_dirfd_not_dir",
+        "path_open_missing",
+        "path_open_nonblock",
+        "path_open_preopen",
+        "path_open_read_write",
+        "path_rename",
+        "path_rename_dir_trailing_slashes",
+        "path_symlink_trailing_slashes",
+        "poll_oneoff_stdio",
+        "readlink",
+        # "remove_directory_trailing_slashes",  # TODO: investigate
+        "remove_nonempty_directory",
+        "renumber",
+        "sched_yield",
+        "stdio",
+        "symlink_create",
+        "symlink_filestat",
+        "symlink_loop",
+        "truncation_rights",
+        "unlink_file_trailing_slashes",
+    ]
+]
+
+_AS_TESTS = [
+    "//tests/assemblyscript/wasm32-wasip1:" + t + "_test"
+    for t in [
+        "args_get-multiple-arguments",
+        "args_sizes_get-multiple-arguments",
+        "args_sizes_get-no-arguments",
+        "environ_get-multiple-variables",
+        "environ_sizes_get-multiple-variables",
+        "environ_sizes_get-no-variables",
+        "fd_write-to-invalid-fd",
+        "fd_write-to-stdout",
+        "proc_exit-failure",
+        "proc_exit-success",
+        "random_get-non-zero-length",
+        "random_get-zero-length",
+    ]
+]
+
+_RUST_WASIP3_TESTS = [
+    "//tests/rust/wasm32-wasip3:" + t + "_test"
+    for t in [
+        "cli-env",
+        "cli-exit",
+        "cli-stdio",
+        "cli-stdio-roundtrip",
+        "cli-terminal",
+        "filesystem-advise",
+        "filesystem-dotdot",
+        "filesystem-flags-and-type",
+        "filesystem-hard-links",
+        "filesystem-io",
+        "filesystem-is-same-object",
+        "filesystem-metadata-hash",
+        "filesystem-mkdir-rmdir",
+        "filesystem-open-errors",
+        "filesystem-read-directory",
+        "filesystem-rename",
+        "filesystem-set-size",
+        "filesystem-stat",
+        "filesystem-unlink-errors",
+        "http-fields",
+        "http-request",
+        "http-response",
+        "http-service",
+        "monotonic-clock",
+        "multi-clock-wait",
+        "random",
+        "run-with-err",
+        "sockets-echo",
+        "sockets-tcp-bind",
+        # "sockets-tcp-connect",  # TODO: investigate
+        # "sockets-tcp-listen",  # TODO: investigate
+        "sockets-tcp-properties",
+        "sockets-tcp-receive",
+        "sockets-tcp-send",
+        "sockets-udp-bind",
+        "sockets-udp-connect",
+        "sockets-udp-properties",
+        "sockets-udp-receive",
+        # "sockets-udp-send",  # TODO: investigate
+        "wall-clock",
+    ]
+]
+
+test_suite(
+    name = "c",
+    tests = _C_TESTS,
+)
+
+test_suite(
+    name = "rust_wasip1",
+    tests = _RUST_WASIP1_TESTS,
+)
+
+test_suite(
+    name = "assemblyscript",
+    tests = _AS_TESTS,
+)
+
+test_suite(
+    name = "rust_wasip3",
+    tests = _RUST_WASIP3_TESTS,
+)
+
+test_suite(
+    name = "wasip1",
+    tests = _C_TESTS + _RUST_WASIP1_TESTS + _AS_TESTS,
+)
+
+test_suite(
+    name = "all",
+    tests = _C_TESTS + _RUST_WASIP1_TESTS + _AS_TESTS + _RUST_WASIP3_TESTS,
+)

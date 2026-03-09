@@ -1,0 +1,31 @@
+[cells]
+  root = .
+  wasmono = wasmono
+  toolchains = toolchains
+  prelude = prelude
+  none = none
+
+[cell_aliases]
+  config = prelude
+  ovr_config = prelude
+  fbcode = none
+  fbsource = none
+  fbcode_macros = none
+  buck = none
+
+[external_cells]
+  prelude = bundled
+  wasmono = git
+
+[external_cell_wasmono]
+  git_origin = https://github.com/andreiltd/wasmono.git
+  commit_hash = f76e6d992c9d03c75f8c91ed8e30fa5826682896
+
+[build]
+  execution_platforms = prelude//platforms:default
+
+[parser]
+  target_platform_detector_spec = target:root//...->prelude//platforms:default
+
+[project]
+  ignore = .git

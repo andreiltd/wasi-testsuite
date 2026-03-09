@@ -8,3 +8,8 @@ __pycache__
 *~
 \#*\#
 
+# Buck2
+buck-out/
+wasmono/
+*.cleanup
+

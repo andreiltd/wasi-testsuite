@@ -8,3 +8,15 @@ python_library(
     ],
     visibility = ["PUBLIC"],
 )
+
+export_file(
+    name = "generate_manifest.py",
+    src = "generate_manifest.py",
+    visibility = ["PUBLIC"],
+)
+
+export_file(
+    name = "package_dist.py",
+    src = "package_dist.py",
+    visibility = ["PUBLIC"],
+)

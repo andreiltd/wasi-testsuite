@@ -1,5 +1,0 @@
-python_binary(
-    name = "wasmtime-nightly",
-    main = "wasmtime-nightly.py",
-    visibility = ["PUBLIC"],
-)

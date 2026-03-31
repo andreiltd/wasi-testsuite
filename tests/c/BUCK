@@ -1,43 +1,27 @@
-load("@wasmono//toolchains/wasm:component.bzl", "wasm_test")
-
 # C tests targeting wasm32-wasip1 via wasi-sdk.
-# Each test has a name and optional dirs for filesystem access.
-
-_FS_DIRS = ["tests/c/src/fs-tests.dir::fs-tests.dir"]
-
 _TESTS = [
-    {"name": "clock_getres-monotonic"},
-    {"name": "clock_getres-realtime"},
-    {"name": "clock_gettime-monotonic"},
-    {"name": "clock_gettime-realtime"},
-    {"name": "fopen-with-no-access"},
-    {"name": "sock_shutdown-invalid_fd"},
-    {"name": "sock_shutdown-not_sock"},
-    {"name": "fdopendir-with-access", "dirs": _FS_DIRS},
-    {"name": "fopen-with-access", "dirs": _FS_DIRS},
-    {"name": "lseek", "dirs": _FS_DIRS},
-    {"name": "pread-with-access", "dirs": _FS_DIRS},
-    {"name": "pwrite-with-access", "dirs": _FS_DIRS},
-    {"name": "pwrite-with-append", "dirs": _FS_DIRS},
-    {"name": "stat-dev-ino", "dirs": _FS_DIRS},
+    "clock_getres-monotonic",
+    "clock_getres-realtime",
+    "clock_gettime-monotonic",
+    "clock_gettime-realtime",
+    "fdopendir-with-access",
+    "fopen-with-access",
+    "fopen-with-no-access",
+    "lseek",
+    "pread-with-access",
+    "pwrite-with-access",
+    "pwrite-with-append",
+    "sock_shutdown-invalid_fd",
+    "sock_shutdown-not_sock",
+    "stat-dev-ino",
 ]
 
 [
     cxx_binary(
-        name = t["name"],
-        srcs = ["src/{}.c".format(t["name"])],
+        name = t,
+        srcs = ["src/{}.c".format(t)],
         _cxx_toolchain = "toolchains//:cxx_wasi_p1",
-    )
-    for t in _TESTS
-]
-
-[
-    wasm_test(
-        name = t["name"] + "_test",
-        component = ":{}".format(t["name"]),
-        wasi_dirs = t.get("dirs", []),
-        isolate_dirs = True,
-        args = ["fs-tests.dir"] if t.get("dirs") else [],
+        visibility = ["//tests/..."],
     )
     for t in _TESTS
 ]

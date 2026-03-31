@@ -1,67 +1,49 @@
-load("@wasmono//toolchains/wasm:component.bzl", "wasm_component", "wasm_test")
+load("@wasmono//toolchains/wasm:component.bzl", "wasm_component")
 
-# Rust wasip3 tests using native rust_binary + wasm_component + wasm_test.
-
-_FS_DIRS = ["tests/rust/wasm32-wasip3/src/bin/fs-tests.dir::fs-tests.dir"]
-
-_P3_FLAGS = ["-Wcomponent-model-async", "-Sp3"]
-_P3_HTTP_FLAGS = ["-Wcomponent-model-async", "-Sp3,http"]
-_P3_NET_FLAGS = ["-Wcomponent-model-async", "-Sp3,inherit-network"]
+# Rust wasip3 tests: compile + create components.
+# Test execution is handled by conformance tests in //tests:BUCK.
 
 _TESTS = [
-    # CLI
-    {"name": "cli-stdio"},
-    {"name": "cli-terminal"},
-    {"name": "cli-env", "env": {"foo": "bar", "baz": "42"}, "args": ["a", "b", "42"], "extra_flags": ["--argv0", "cli-env.wasm"]},
-    {"name": "cli-exit", "expected_exit_code": 1},
-    {"name": "run-with-err", "expected_exit_code": 1},
-
-    # Clocks
-    {"name": "monotonic-clock"},
-    {"name": "multi-clock-wait"},
-    {"name": "wall-clock"},
-
-    # Random
-    {"name": "random"},
-
-    # Sockets
-    {"name": "sockets-tcp-properties"},
-    {"name": "sockets-udp-properties"},
-    {"name": "sockets-tcp-bind", "wasmtime_flags": _P3_NET_FLAGS, "inherit_network": True},
-    {"name": "sockets-tcp-connect", "wasmtime_flags": _P3_NET_FLAGS, "inherit_network": True, "skip": "TODO"},
-    {"name": "sockets-tcp-listen", "wasmtime_flags": _P3_NET_FLAGS, "inherit_network": True, "skip": "TODO"},
-    {"name": "sockets-tcp-receive", "wasmtime_flags": _P3_NET_FLAGS, "inherit_network": True},
-    {"name": "sockets-tcp-send", "wasmtime_flags": _P3_NET_FLAGS, "inherit_network": True},
-    {"name": "sockets-udp-bind", "wasmtime_flags": _P3_NET_FLAGS, "inherit_network": True},
-    {"name": "sockets-udp-connect", "wasmtime_flags": _P3_NET_FLAGS, "inherit_network": True},
-    {"name": "sockets-udp-receive", "wasmtime_flags": _P3_NET_FLAGS, "inherit_network": True},
-    {"name": "sockets-udp-send", "wasmtime_flags": _P3_NET_FLAGS, "inherit_network": True, "skip": "TODO"},
-
-    # HTTP
-    {"name": "http-fields", "wasmtime_flags": _P3_HTTP_FLAGS},
-    {"name": "http-request", "wasmtime_flags": _P3_HTTP_FLAGS},
-    {"name": "http-response", "wasmtime_flags": _P3_HTTP_FLAGS},
-
-    # Filesystem
-    {"name": "filesystem-advise", "dirs": _FS_DIRS},
-    {"name": "filesystem-dotdot", "dirs": _FS_DIRS},
-    {"name": "filesystem-flags-and-type", "dirs": _FS_DIRS},
-    {"name": "filesystem-hard-links", "dirs": _FS_DIRS},
-    {"name": "filesystem-io", "dirs": _FS_DIRS},
-    {"name": "filesystem-is-same-object", "dirs": _FS_DIRS},
-    {"name": "filesystem-metadata-hash", "dirs": _FS_DIRS},
-    {"name": "filesystem-mkdir-rmdir", "dirs": _FS_DIRS},
-    {"name": "filesystem-open-errors", "dirs": _FS_DIRS},
-    {"name": "filesystem-read-directory", "dirs": _FS_DIRS},
-    {"name": "filesystem-rename", "dirs": _FS_DIRS},
-    {"name": "filesystem-set-size", "dirs": _FS_DIRS},
-    {"name": "filesystem-stat", "dirs": _FS_DIRS},
-    {"name": "filesystem-unlink-errors", "dirs": _FS_DIRS},
-
-    # Complex tests (python_test runner)
-    {"name": "cli-stdio-roundtrip", "runner": "python"},
-    {"name": "http-service", "runner": "python"},
-    {"name": "sockets-echo", "runner": "python"},
+    "cli-env",
+    "cli-exit",
+    "cli-stdio",
+    "cli-stdio-roundtrip",
+    "cli-terminal",
+    "filesystem-advise",
+    "filesystem-dotdot",
+    "filesystem-flags-and-type",
+    "filesystem-hard-links",
+    "filesystem-io",
+    "filesystem-is-same-object",
+    "filesystem-metadata-hash",
+    "filesystem-mkdir-rmdir",
+    "filesystem-open-errors",
+    "filesystem-read-directory",
+    "filesystem-rename",
+    "filesystem-set-size",
+    "filesystem-stat",
+    "filesystem-unlink-errors",
+    "http-fields",
+    "http-request",
+    "http-response",
+    "http-service",
+    "monotonic-clock",
+    "multi-clock-wait",
+    "random",
+    "run-with-err",
+    "sockets-echo",
+    "sockets-tcp-bind",
+    "sockets-tcp-connect",
+    "sockets-tcp-listen",
+    "sockets-tcp-properties",
+    "sockets-tcp-receive",
+    "sockets-tcp-send",
+    "sockets-udp-bind",
+    "sockets-udp-connect",
+    "sockets-udp-properties",
+    "sockets-udp-receive",
+    "sockets-udp-send",
+    "wall-clock",
 ]
 
 _WIT_SRCS = glob(["wit/**/*.wit"])
@@ -79,6 +61,7 @@ rust_library(
         "src/sockets.rs",
     ] + _WIT_SRCS,
     edition = "2024",
+    default_target_platform = "//platforms:wasm32_wasi",
     deps = [
         "//third-party:wit-bindgen",
     ],
@@ -90,11 +73,12 @@ rust_library(
 [
     (
         rust_binary(
-            name = t["name"],
-            crate = t["name"].replace("-", "_"),
-            crate_root = "src/bin/{}.rs".format(t["name"]),
-            srcs = ["src/bin/{}.rs".format(t["name"])] + _WIT_SRCS,
+            name = t,
+            crate = t.replace("-", "_"),
+            crate_root = "src/bin/{}.rs".format(t),
+            srcs = ["src/bin/{}.rs".format(t)] + _WIT_SRCS,
             edition = "2024",
+            default_target_platform = "//platforms:wasm32_wasi",
             deps = [
                 ":test_wasm32_wasip3",
                 "//third-party:wit-bindgen",
@@ -104,44 +88,11 @@ rust_library(
             _cxx_toolchain = "toolchains//:rust_linker",
         ),
         wasm_component(
-            name = t["name"] + "_component",
-            module = ":{}".format(t["name"]),
+            name = t + "_component",
+            module = ":{}".format(t),
             adapter = "command",
+            visibility = ["//tests/..."],
         ),
     )
     for t in _TESTS
-]
-
-# wasm_test for all non-complex, non-skipped tests
-[
-    wasm_test(
-        name = t["name"] + "_test",
-        component = ":{}_component".format(t["name"]),
-        wasmtime_flags = t.get("wasmtime_flags", _P3_FLAGS) + t.get("extra_flags", []),
-        wasi_dirs = t.get("dirs", []),
-        isolate_dirs = True if t.get("dirs") else False,
-        wasi_inherit_network = t.get("inherit_network", False),
-        args = t.get("args", ["fs-tests.dir"] if t.get("dirs") else []),
-        env = t.get("env", {}),
-        expected_exit_code = t.get("expected_exit_code", 0),
-    )
-    for t in _TESTS
-    if t.get("runner") != "python" and not t.get("skip")
-]
-
-# Complex tests using python_test + Buck2-managed Python
-[
-    python_test(
-        name = t["name"] + "_test",
-        main_module = "run_wasi_test",
-        deps = ["//tools:run_wasi_test"],
-        env = {
-            "WASM_FILE": "$(location :{}_component)".format(t["name"]),
-            "WASI_CONFIG": "src/bin/{}.json".format(t["name"]),
-            "WASI_ADAPTER": "adapters/wasmtime.py",
-        },
-        labels = ["complex"],
-    )
-    for t in _TESTS
-    if t.get("runner") == "python"
 ]

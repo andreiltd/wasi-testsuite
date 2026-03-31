@@ -1,64 +1,28 @@
 load("@wasmono//toolchains/wasm:assemblyscript.bzl", "assemblyscript_binary")
-load("@wasmono//toolchains/wasm:component.bzl", "wasm_test")
 
-# AssemblyScript wasip1 tests compiled with hermetic asc, tested via wasmtime.
-# Each test has a name and optional args, env, expected_exit_code.
+# AssemblyScript wasip1 tests: compile only.
+# Test execution is handled by conformance tests in //tests:BUCK.
 
 _TESTS = [
-    {"name": "args_sizes_get-no-arguments"},
-    {"name": "environ_sizes_get-no-variables"},
-    {"name": "fd_write-to-invalid-fd"},
-    {"name": "proc_exit-success"},
-    {"name": "random_get-non-zero-length"},
-    {"name": "random_get-zero-length"},
-    {"name": "args_get-multiple-arguments", "args": ["first", "the \"second\" arg", "3"]},
-    {"name": "args_sizes_get-multiple-arguments", "args": ["first", "the \"second\" arg", "3"]},
-    {"name": "environ_get-multiple-variables", "env": {"a": "text", "b": "escap \" ing", "c": "new\nline"}},
-    {"name": "environ_sizes_get-multiple-variables", "env": {"a": "b", "b": "c", "c": "d"}},
-    {"name": "proc_exit-failure", "expected_exit_code": 33},
-]
-
-_COMPLEX_TESTS = [
+    "args_get-multiple-arguments",
+    "args_sizes_get-multiple-arguments",
+    "args_sizes_get-no-arguments",
+    "environ_get-multiple-variables",
+    "environ_sizes_get-multiple-variables",
+    "environ_sizes_get-no-variables",
+    "fd_write-to-invalid-fd",
     "fd_write-to-stdout",
+    "proc_exit-failure",
+    "proc_exit-success",
+    "random_get-non-zero-length",
+    "random_get-zero-length",
 ]
 
-_ALL_TESTS = (
-    [t["name"] for t in _TESTS] +
-    _COMPLEX_TESTS
-)
-
-# Compile each .ts source to .wasm using the hermetic asc toolchain
 [
     assemblyscript_binary(
         name = t,
         src = "src/{}.ts".format(t),
-    )
-    for t in _ALL_TESTS
-]
-
-[
-    wasm_test(
-        name = t["name"] + "_test",
-        component = ":{}".format(t["name"]),
-        args = t.get("args", []),
-        env = t.get("env", {}),
-        expected_exit_code = t.get("expected_exit_code", 0),
+        visibility = ["//tests/..."],
     )
     for t in _TESTS
-]
-
-# Complex tests (stdout validation) using python_test + Buck2-managed Python
-[
-    python_test(
-        name = t + "_test",
-        main_module = "run_wasi_test",
-        deps = ["//tools:run_wasi_test"],
-        env = {
-            "WASM_FILE": "$(location :{})".format(t),
-            "WASI_CONFIG": "src/{}.json".format(t),
-            "WASI_ADAPTER": "adapters/wasmtime.py",
-        },
-        labels = ["complex"],
-    )
-    for t in _COMPLEX_TESTS
 ]

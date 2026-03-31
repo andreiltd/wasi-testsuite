@@ -74,19 +74,39 @@ Optionally you can specify test cases to skip with the `--exclude-filter` option
 ## Using buck2
 
 The test suite can be built and run hermetically with [Buck2](https://buck2.build)
-using [wasmono](https://github.com/andreiltd/wasmono) toolchain rules.
+using [wasmono](https://github.com/andreiltd/wasmono) toolchain rules. All
+toolchains (wasi-sdk, Rust, wasmtime, etc.) are downloaded automatically.
 
-The tests use the dev version of Wasmtime, which is a rolling release without a
-stable hash. Before running tests, update the SHA256 hashes in `toolchains/releases.bzl`:
-
-```
+```bash
+# Install dotslash (one-time: needed to run the pinned buck2 binary)
 cargo binstall dotslash
-./buck2 run //scripts:wasmtime-nightly
-./buck2 test //tests/...
+
+# Run all tests against wasmtime
+./buck2 test //tests:wasmtime
+
+# Run all tests against a specific runtime
+./buck2 test //tests:wasmedge
+./buck2 test //tests:wazero
+./buck2 test //tests:wamr
+
+# Run a single test
+./buck2 test //tests:wasmtime_c-wasip1_lseek
+
+# Build all test components without running tests
+./buck2 build //tests/...
+
+# Build the distributable archive (manifest + prebuilt wasm + configs + fixtures)
+./buck2 build //tests:dist
+
+# Build dist for a specific WASI version only
+./buck2 build //tests:dist_wasip1
+./buck2 build //tests:dist_wasip3
+
+# Generate only the manifest
+./buck2 build //tests:manifest
 ```
 
-Note: make sure to use `./buck2` and not `buck2` from your system. It may still work but
-`buck2` version has to be pretty recent.
+Note: use `./buck2` (the repo's pinned version), not a system `buck2`.
 
 ## Contributing
 

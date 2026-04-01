@@ -7,20 +7,30 @@ from .filters import (
 from .reporters import TestReporter
 from .reporters.console import ConsoleTestReporter
 from .reporters.json import JSONTestReporter
-from .test_suite_runner import run_tests_from_test_suite
+from .test_suite_runner import run_tests_from_generated_manifest
 from .runtime_adapter import RuntimeAdapter
 
 
-# too-many-positional-arguments is a post-3.0 pylint message.
 # pylint: disable-msg=unknown-option-value
 # pylint: disable-msg=too-many-arguments
 # pylint: disable-msg=too-many-positional-arguments
-def run_tests(runtimes: List[RuntimeAdapter],
-              test_suite_paths: List[Path],
-              exclude_filters: List[Path] | None = None,
-              color: bool = True,
-              verbose: bool = False,
-              json_log_file: str | None = None) -> int:
+def run_tests_from_manifest(
+    runtimes: List[RuntimeAdapter],
+    manifest_path: str,
+    base_dir: str | None = None,
+    exclude_filters: List[Path] | None = None,
+    color: bool = True,
+    verbose: bool = False,
+    json_log_file: str | None = None,
+) -> int:
+    """Run tests listed in a manifest.
+
+    This is the primary entry point. It reads a manifest that lists all
+    tests and their metadata, then runs them through each runtime adapter.
+    """
+    if base_dir is None:
+        base_dir = str(Path(manifest_path).parent)
+
     reporters: List[TestReporter] = [ConsoleTestReporter(color, verbose=verbose)]
     if json_log_file:
         reporters.append(JSONTestReporter(json_log_file))
@@ -28,25 +38,13 @@ def run_tests(runtimes: List[RuntimeAdapter],
     if exclude_filters is not None:
         filters += [JSONTestExcludeFilter(str(filt)) for filt in exclude_filters]
 
-    return run_all_tests(runtimes, [str(p) for p in test_suite_paths], reporters, filters)
-
-
-def run_all_tests(
-    runtimes: List[RuntimeAdapter],
-    test_suite_paths: List[str],
-    reporters: List[TestReporter],
-    filters: List[TestFilter],
-) -> int:
     ret = 0
-
-    for test_suite_path in test_suite_paths:
-        for runtime in runtimes:
-            test_suite = run_tests_from_test_suite(
-                test_suite_path, runtime, reporters, filters,
-            )
-            for reporter in reporters:
-                reporter.report_test_suite(test_suite)
-            if test_suite.fail_count > 0:
+    for runtime in runtimes:
+        suites = run_tests_from_generated_manifest(
+            manifest_path, base_dir, runtime, reporters, filters,
+        )
+        for suite in suites:
+            if suite.fail_count > 0:
                 ret = 1
 
     for reporter in reporters:

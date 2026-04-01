@@ -7,7 +7,7 @@ REPOS=(
 
 WASI_VERSION=22
 WASI_SDK_DIR=$(pwd)/wasi-sdk
-BASE_BRANCH="prod/testsuite-base"
+BASE_BRANCH="main"
 PROPOSALS_DIR="tests/proposals"
 
 ENABLED_REPOS=$REPOS

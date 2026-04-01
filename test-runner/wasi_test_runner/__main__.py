@@ -1,15 +1,9 @@
 import argparse
 import sys
-from typing import List
-
+from pathlib import Path
 
 from .runtime_adapter import RuntimeAdapter
-from .harness import run_all_tests
-from .filters import TestFilter
-from .filters import JSONTestExcludeFilter, UnsupportedWasiTestExcludeFilter
-from .reporters import TestReporter
-from .reporters.console import ConsoleTestReporter
-from .reporters.json import JSONTestReporter
+from .harness import run_tests_from_manifest
 
 
 def main() -> int:
@@ -18,11 +12,13 @@ def main() -> int:
     )
 
     parser.add_argument(
-        "-t",
-        "--test-suite",
+        "test_suite",
+        help="Path to a test suite directory containing manifest.json.",
+    )
+    parser.add_argument(
+        "-r", "--runtime-adapter",
         required=True,
-        nargs="+",
-        help="Locations of suites (directories with *.wasm test files).",
+        help="Path to a runtime adapter.",
     )
     parser.add_argument(
         "-f",
@@ -33,11 +29,8 @@ def main() -> int:
         help="Locations of test exclude filters (JSON files).",
     )
     parser.add_argument(
-        "-r", "--runtime-adapter", required=True, help="Path to a runtime adapter."
-    )
-    parser.add_argument(
         "--json-output-location",
-        help="JSON test result destination. If not specified, JSON output won't be generated.",
+        help="JSON test result destination.",
     )
     parser.add_argument(
         "--disable-colors",
@@ -48,20 +41,20 @@ def main() -> int:
 
     options = parser.parse_args()
 
-    reporters: List[TestReporter] = [ConsoleTestReporter(not options.disable_colors,
-                                                         verbose=True)]
-    if options.json_output_location:
-        reporters.append(JSONTestReporter(options.json_output_location))
+    suite_dir = Path(options.test_suite)
+    manifest_path = suite_dir / "manifest.json"
 
-    filters: List[TestFilter] = [UnsupportedWasiTestExcludeFilter()]
-    for filt in options.exclude_filter:
-        filters.append(JSONTestExcludeFilter(filt))
+    if not manifest_path.is_file():
+        print(f"Error: {manifest_path} not found", file=sys.stderr)
+        return 1
 
-    return run_all_tests(
+    return run_tests_from_manifest(
         [RuntimeAdapter(options.runtime_adapter)],
-        options.test_suite,
-        reporters,
-        filters,
+        manifest_path=str(manifest_path),
+        base_dir=str(suite_dir),
+        color=not options.disable_colors,
+        json_log_file=options.json_output_location,
+        exclude_filters=options.exclude_filter or None,
     )
 
 

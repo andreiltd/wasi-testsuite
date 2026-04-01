@@ -14,9 +14,11 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          ref: prod/testsuite-base
+
+      - name: Download prebuilt test suite
+        run: |
+          curl -fsSL https://github.com/WebAssembly/wasi-testsuite/releases/latest/download/wasi-testsuite.tar.gz | tar xz
+          python3 tools/generate_manifest.py --scan-dir wasi-testsuite -o wasi-testsuite/manifest.json
 
       - name: Initialize Python environment
         uses: actions/setup-python@v4
@@ -70,6 +72,7 @@ jobs:
         continue-on-error: true
         run: |
           ./run-tests \
+            wasi-testsuite \
             -r ./adapters/${{ matrix.runtime }}.py \
             --verbose \
             --json-output-location results.json

@@ -1,72 +1,56 @@
-"""Reusable Buck2 python_test wrapper for the WASI test runner.
+"""Run a single WASI test via the runner + adapter.
 
-Usage from python_test:
-    import run_wasi_test
-    run_wasi_test.main()
-
-Expects environment variables:
-    WASM_FILE:    path to the .wasm test binary
-    WASI_CONFIG:  (optional) path to the .json test config
-    WASI_ADAPTER: path to the runtime adapter
+Usage:
+    python3 run_wasi_test.py --wasm FILE --adapter FILE \
+        [--wasi-version VER] [--config FILE]
 """
-import json
+import argparse
 import os
-import shutil
-import tempfile
-import unittest
+import sys
 from pathlib import Path
 
 
-class WasiTest(unittest.TestCase):
-    """Buck2 python_test wrapper for running a single WASI test."""
+def main():
+    """Run one WASI test."""
+    parser = argparse.ArgumentParser(description="Run a single WASI test")
+    parser.add_argument("--wasm", required=True, help="Path to .wasm file")
+    parser.add_argument("--adapter", required=True, help="Path to adapter .py")
+    parser.add_argument("--wasi-version", default="wasm32-wasip1")
+    parser.add_argument("--config", help="Path to test .json config")
+    args = parser.parse_args()
 
-    def test_wasm(self):
-        """Run one WASI test via the manifest-based runner."""
-        wasm_file = os.environ["WASM_FILE"]
-        config_file = os.environ.get("WASI_CONFIG", "")
-        suite_dir = tempfile.mkdtemp()
+    # Add test-runner to path
+    script_dir = Path(__file__).resolve().parent
+    for candidate in [script_dir.parent, Path.cwd()]:
+        runner_dir = candidate / "test-runner"
+        if runner_dir.is_dir():
+            sys.path.insert(0, str(runner_dir))
+            break
 
-        try:
-            test_name = Path(wasm_file).stem
-            if test_name.endswith(".component"):
-                test_name = test_name[:-len(".component")]
-
-            # Copy wasm and config into a flat directory
-            wasm_dst = os.path.join(suite_dir, f"{test_name}.wasm")
-            shutil.copy2(wasm_file, wasm_dst)
-
-            if config_file and os.path.isfile(config_file):
-                shutil.copy2(config_file, os.path.join(suite_dir, f"{test_name}.json"))
-
-            # Generate a minimal manifest
-            manifest = {
-                "version": 1,
-                "suites": [{
-                    "name": "test",
-                    "wasi_version": "wasm32-wasip1",
-                    "tests": [{
-                        "name": test_name,
-                        "wasm": f"{test_name}.wasm",
-                    }],
-                }],
-            }
-
-            manifest_path = os.path.join(suite_dir, "manifest.json")
-            with open(manifest_path, "w", encoding="utf-8") as f:
-                json.dump(manifest, f)
-
-            from wasi_test_runner.harness import run_tests_from_manifest
-            from wasi_test_runner.runtime_adapter import RuntimeAdapter
-
-            adapter = RuntimeAdapter(os.environ.get("WASI_ADAPTER", "adapters/wasmtime.py"))
-
-            result = run_tests_from_manifest(
-                [adapter],
-                manifest_path=manifest_path,
-                base_dir=suite_dir,
-                color=False,
-                verbose=True,
+    # Set LD_LIBRARY_PATH for runtimes with shared libs (e.g. wasmedge)
+    for env_var in ("WASMEDGE", "WASMTIME", "WAZERO", "IWASM"):
+        binary = os.environ.get(env_var)
+        if binary:
+            lib_dir = os.path.join(
+                os.path.dirname(os.path.abspath(binary)), "..", "lib64",
             )
-            self.assertEqual(result, 0, f"WASI test {test_name} failed")
-        finally:
-            shutil.rmtree(suite_dir, ignore_errors=True)
+            if os.path.isdir(lib_dir):
+                existing = os.environ.get("LD_LIBRARY_PATH", "")
+                os.environ["LD_LIBRARY_PATH"] = (
+                    lib_dir + (":" + existing if existing else "")
+                )
+
+    from wasi_test_runner.harness import run_single_test
+    from wasi_test_runner.runtime_adapter import RuntimeAdapter
+
+    adapter = RuntimeAdapter(args.adapter)
+    sys.exit(run_single_test(
+        wasm_path=args.wasm,
+        adapter=adapter,
+        wasi_version=args.wasi_version,
+        config_path=args.config,
+    ))
+
+
+if __name__ == "__main__":
+    main()

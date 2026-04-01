@@ -77,6 +77,7 @@ rust_library(
             srcs = ["src/bin/{}.rs".format(t)],
             edition = "2021",
             default_target_platform = "//platforms:wasm32_wasi",
+            visibility = ["//tests/..."],
             deps = [
                 ":wasi_tests",
                 "//third-party:libc",

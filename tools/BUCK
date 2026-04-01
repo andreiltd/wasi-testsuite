@@ -1,11 +1,6 @@
-python_library(
-    name = "run_wasi_test",
-    srcs = ["run_wasi_test.py"],
-    base_module = "",
-    deps = [
-        "//test-runner:wasi_test_runner",
-        "//adapters:adapters",
-    ],
+export_file(
+    name = "run_wasi_test.py",
+    src = "run_wasi_test.py",
     visibility = ["PUBLIC"],
 )
 

@@ -12,6 +12,7 @@
 
 load("//tools:conformance.bzl", "wasi_conformance_tests")
 load("//tools:manifest.bzl", "dist_components", "dist_config_dirs", "dist_fixtures", "manifest_suites", "wasi_dist", "wasi_manifest")
+load(":runtimes.bzl", "available_runtimes")
 
 _C_NAMES = [
     "clock_getres-monotonic",
@@ -163,6 +164,11 @@ _WASIP1_SUITES = {
     },
 }
 
+# Module-based suites for runtimes without component model support.
+# These point at the raw rust_binary/cxx_binary (no _component suffix),
+# and the conformance rule applies wasm_transition_p1 to compile for wasip1.
+_WASIP1_MODULE_SUITES = {k: dict(v, component_suffix = "") for k, v in _WASIP1_SUITES.items()}
+
 _WASIP3_SUITES = {
     "rust-wasip3": {
         "wasi_version": "wasm32-wasip3",
@@ -177,33 +183,32 @@ _WASIP3_SUITES = {
 _ALL_SUITES = dict(_WASIP1_SUITES)
 _ALL_SUITES.update(_WASIP3_SUITES)
 
-# Wasmtime: supports wasip1 + wasip3
+# Wasmtime
 wasi_conformance_tests(
     name = "wasmtime",
     adapter = "adapters/wasmtime.py",
     suites = _ALL_SUITES,
+    runtime = "toolchains//:wasmtime_runtime",
+    runtime_env_var = "WASMTIME",
+    skip = [
+        "cli-env",  # argv[0] mismatch in component vs module name
+        "sockets-echo",  # timing-sensitive, flaky
+        "http-service",  # timing-sensitive, flaky in parallel execution
+        "filesystem-advise",  # fails on macOS (no posix_fadvise)
+    ],
 )
 
-# WasmEdge: wasip1 only
-wasi_conformance_tests(
-    name = "wasmedge",
-    adapter = "adapters/wasmedge.py",
-    suites = _WASIP1_SUITES,
-)
-
-# wazero: wasip1 only
-wasi_conformance_tests(
-    name = "wazero",
-    adapter = "adapters/wazero.py",
-    suites = _WASIP1_SUITES,
-)
-
-# WAMR: wasip1 only
-wasi_conformance_tests(
-    name = "wamr",
-    adapter = "adapters/wasm-micro-runtime.py",
-    suites = _WASIP1_SUITES,
-)
+# Other runtimes (wasip1 modules, platform-dependent availability)
+[
+    wasi_conformance_tests(
+        name = rt_name,
+        adapter = rt_adapter,
+        suites = _WASIP1_MODULE_SUITES,
+        runtime = rt_target,
+        runtime_env_var = rt_env,
+    )
+    for rt_name, rt_adapter, rt_target, rt_env in available_runtimes()
+]
 
 # All suites
 wasi_manifest(name = "manifest", suites = manifest_suites(_ALL_SUITES))

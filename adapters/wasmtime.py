@@ -4,8 +4,9 @@ import subprocess
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-# shlex.split() splits according to shell quoting rules
-WASMTIME = shlex.split(os.getenv("WASMTIME", "wasmtime"))
+# shlex.split() splits according to shell quoting rules.
+# Use posix=False on Windows to preserve backslash path separators.
+WASMTIME = shlex.split(os.getenv("WASMTIME", "wasmtime"), posix=(os.name != "nt"))
 
 
 def get_name() -> str:

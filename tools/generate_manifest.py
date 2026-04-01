@@ -97,7 +97,10 @@ def build_manifest_from_tests_json(tests_json_path, base_dir=None):
 
         config_path = ""
         if config_rel:
-            config_path = os.path.join(base_dir, config_rel) if base_dir else config_rel
+            if base_dir:
+                config_path = os.path.join(base_dir, config_rel)
+            else:
+                config_path = config_rel
 
         config = load_test_config(config_path)
         meta = infer_metadata_from_config(config)

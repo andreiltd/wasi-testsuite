@@ -73,6 +73,7 @@ def wasi_conformance_tests(
         component_prefix = suite.get("component_prefix", "")
         component_suffix = suite.get("component_suffix", "_component")
         wasi_version = suite.get("wasi_version", "wasm32-wasip1")
+        suite_tests = []
 
         for test_name in suite["tests"]:
             if test_name in skip:
@@ -97,5 +98,12 @@ def wasi_conformance_tests(
                 labels = [name, suite_name] + labels,
             )
             all_tests.append(":" + target_name)
+            suite_tests.append(":" + target_name)
+
+        if suite_tests:
+            native.test_suite(
+                name = "{}_{}".format(name, suite_name),
+                tests = suite_tests,
+            )
 
     native.test_suite(name = name, tests = all_tests)

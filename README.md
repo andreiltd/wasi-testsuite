@@ -89,6 +89,12 @@ cargo binstall dotslash
 ./buck2 test //tests:wazero
 ./buck2 test //tests:wamr
 
+# Run tests for a specific suite/language
+./buck2 test //tests:wasmtime_rust-wasip1
+./buck2 test //tests:wasmtime_rust-wasip3
+./buck2 test //tests:wasmtime_c-wasip1
+./buck2 test //tests:wasmtime_assemblyscript-wasip1
+
 # Run a single test
 ./buck2 test //tests:wasmtime_c-wasip1_lseek
 

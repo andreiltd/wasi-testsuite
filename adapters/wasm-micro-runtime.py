@@ -46,7 +46,7 @@ def compute_argv(test_path: str,
         argv += ["--env", f"{k}={v}"]
 
     for host, guest in dirs:
-        argv += ["--map-dir", f"{host}::{guest}"]  # noqa: E231
+        argv += ["--map-dir", f"{guest}::{host}"]  # noqa: E231
 
     argv += [test_path]
 

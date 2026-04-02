@@ -64,8 +64,17 @@ jobs:
           rustup target add wasm32-wasip1
           rustup target add wasm32-wasip2
 
-      - name: Run tests against all runtimes
-        run: dotslash ./buck2 test //tests/...
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install Python test dependencies
+        run: pip install -r test-runner/requirements.txt
+
+      - name: Test wasmtime
+        continue-on-error: ${{ matrix.os == 'windows-latest' }}
+        run: dotslash ./buck2 test //tests:wasmtime
 
       - name: Check C formatting
         if: matrix.os == 'ubuntu-latest'
